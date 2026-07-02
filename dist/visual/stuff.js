@@ -1,5 +1,4 @@
 import { aStar } from '../snek-codez/astar.js';
-import { BattleMap } from '../snek-codez/graph.js';
 import { buildMap } from '../snek-codez/snek.js';
 import { dirs } from '../snek-codez/utils.js';
 const sampleState = {
@@ -234,20 +233,6 @@ const sampleState = {
     },
 };
 const state = sampleState;
-function doStuff() {
-    const food = state.board.food[0];
-    const you = state.you.head;
-    // const result = aStar(sampleState, you, food)
-    const map = new BattleMap(state.board.width, state.board.height);
-    state.board.snakes.forEach((snek) => {
-        snek.body.forEach((b) => map.setBlocked(b));
-        const headNeighbors = map.neighbors(snek.head);
-        headNeighbors.forEach((c) => map.setDanger(c, 30));
-    });
-    const result = aStar(map, you, food);
-    console.log(result);
-}
-doStuff();
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
 const W = 500;

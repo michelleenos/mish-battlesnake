@@ -1,7 +1,7 @@
 import type { Battlesnake, Coord, GameState } from '../types'
 import { aStar, type AStarResult } from './astar.js'
 import { BattleMap } from './graph.js'
-import { dirs, cellsEqual, type Direction } from './utils.js'
+import { dirs, cellsEqual } from './utils.js'
 
 export interface Moves {
     up: boolean

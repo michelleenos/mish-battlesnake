@@ -63,10 +63,8 @@ export function buildMap(state) {
     const neck = state.you.body[1];
     const tail = state.you.body[state.you.body.length - 1];
     if (!cellsEqual(head, tail) && !cellsEqual(head, neck) && !cellsEqual(neck, tail)) {
-        // TODO investigate this bit
-        // it's ok to move to where our tail is... i think??? (hmm... what if you eat a food and grow tho?)
         if (state.you.health < 100) {
-            // i think this means did i just eat?
+            // i think this means did i just eat? because if so, i will grow and then will be crashing into my tail
             map.setBlocked(tail, false);
         }
     }
@@ -134,15 +132,21 @@ export function getMove(state) {
     const map = buildMap(state);
     if (health > 50) {
         const toWeakSnek = attackWeakerSneks(state, map);
-        if (toWeakSnek !== null)
+        if (toWeakSnek !== null) {
+            console.log(`moving ${toWeakSnek} to attack a weak snek`);
             return toWeakSnek;
+        }
     }
     const toFood = moveToFood(state, map);
-    if (toFood !== null)
+    if (toFood !== null) {
+        console.log(`moving ${toFood} to a food`);
         return toFood;
+    }
     const toTail = moveToTail(state, map);
-    if (toTail !== null)
+    if (toTail !== null) {
+        console.log(`moving ${toTail} toward my tail?`);
         return toTail;
+    }
     // const toTail = move
     console.log(`couldn't find a path to food, defaulting to safest moves`);
     const moves = getMovesFromMap(map, state.you);

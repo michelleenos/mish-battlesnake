@@ -12,7 +12,7 @@ export default function runServer(handlers: BattlesnakeHandlers) {
     const app = express()
     app.use(express.json())
 
-    app.get('/', (req: Request, res: Response) => {
+    app.get('/', (_req: Request, res: Response) => {
         res.send(handlers.info())
     })
 
@@ -30,7 +30,7 @@ export default function runServer(handlers: BattlesnakeHandlers) {
         res.send('ok')
     })
 
-    app.use(function (req: Request, res: Response, next: NextFunction) {
+    app.use(function (_req: Request, res: Response, next: NextFunction) {
         res.set('Server', 'battlesnake/github/starter-snake-typescript')
         next()
     })

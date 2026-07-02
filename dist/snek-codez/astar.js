@@ -27,7 +27,6 @@ export function aStar(map, start, goal) {
     const path = constructPath(cameFrom, start, goal);
     const nextMove = path[0];
     if (!nextMove) {
-        console.log('no path found :(');
         return null;
     }
     const dir = getDir(start, nextMove);

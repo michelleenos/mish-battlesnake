@@ -1,14 +1,5 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import runServer from './snek-codez/server';
-import { getMove } from './snek-codez/snek';
-function saveGameState(gameState) {
-    const dir = join(process.cwd(), 'game-states');
-    mkdirSync(dir, { recursive: true });
-    const file = join(dir, `${gameState.game.id}-turn-${gameState.turn}.json`);
-    writeFileSync(file, JSON.stringify(gameState, null, 2));
-    console.log(`Saved game state to ${file}`);
-}
+import runServer from './snek-codez/server.js';
+import { getMove } from './snek-codez/snek.js';
 function info() {
     return {
         apiversion: '1',
@@ -18,14 +9,13 @@ function info() {
         tail: 'curled',
     };
 }
-function start(gameState) {
+function start(_gameState) {
     console.log('GAME START');
 }
 // end is called when your Battlesnake finishes a game
-function end(gameState) {
+function end(_gameState) {
     console.log('GAME OVER\n');
 }
-let i = 0;
 function move(gameState) {
     // const moves = getSafeMoves(gameState)
     // const safeMoves = (Object.keys(moves) as (keyof typeof moves)[]).filter((key) => moves[key])

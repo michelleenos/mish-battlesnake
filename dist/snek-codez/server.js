@@ -2,7 +2,7 @@ import express from 'express';
 export default function runServer(handlers) {
     const app = express();
     app.use(express.json());
-    app.get('/', (req, res) => {
+    app.get('/', (_req, res) => {
         res.send(handlers.info());
     });
     app.post('/start', (req, res) => {
@@ -16,7 +16,7 @@ export default function runServer(handlers) {
         handlers.end(req.body);
         res.send('ok');
     });
-    app.use(function (req, res, next) {
+    app.use(function (_req, res, next) {
         res.set('Server', 'battlesnake/github/starter-snake-typescript');
         next();
     });

@@ -1,5 +1,5 @@
-import runServer from './snek-codez/server'
-import { getMove } from './snek-codez/snek'
+import runServer from './snek-codez/server.js'
+import { getMove } from './snek-codez/snek.js'
 import type { GameState, InfoResponse, MoveResponse } from './types'
 
 function info(): InfoResponse {
