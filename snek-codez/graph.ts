@@ -1,5 +1,5 @@
 import type { Coord } from '../types'
-import { coordToKey, dirs, type NodeKey } from './utils'
+import { coordToKey, dirs, type NodeKey } from './utils.js'
 
 export class MapGraph<T> {
     width: number
@@ -50,10 +50,17 @@ export class BattleMap extends MapGraph<WeightedCell> {
         cell.blocked = blocked
     }
 
-    setDanger(c: Coord, danger: number) {
+    setDanger(c: Coord, danger: number, overwrite = false) {
         const cell = this.get(c)
         const current = cell.danger
-        cell.danger = current !== undefined ? Math.max(danger, current) : danger
+        if (current !== undefined) {
+            if (overwrite) cell.danger = danger
+            else cell.danger = Math.max(current, danger)
+        } else {
+            cell.danger = danger
+        }
+        // cell.danger =
+        //     current !== undefined ? (overwrite ? danger : Math.max(danger, current)) : danger
     }
 
     getDanger(c: Coord) {

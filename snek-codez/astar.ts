@@ -1,6 +1,6 @@
 import type { Coord } from '../types'
-import { MapGraph, type BattleMap } from './graph'
-import { cellsEqual, getDir, type Direction } from './utils'
+import { MapGraph, type BattleMap } from './graph.js'
+import { cellsEqual, getDir, type Direction } from './utils.js'
 
 function heuristic(c1: Coord, c2: Coord) {
     return Math.abs(c1.x - c2.x) + Math.abs(c1.y - c2.y)
@@ -10,6 +10,9 @@ export type AStarResult = {
     dir: Direction
     costToNext: number
     costToGoal: number
+    directions: MapGraph<Coord | null>
+    costMap: MapGraph<number | null>
+    path: Coord[]
 }
 
 export function aStar(map: BattleMap, start: Coord, goal: Coord): null | AStarResult {
@@ -21,11 +24,12 @@ export function aStar(map: BattleMap, start: Coord, goal: Coord): null | AStarRe
     while (frontier.length > 0) {
         const current = frontier.sort((a, b) => a.priority - b.priority).shift()!.c
 
-        if (current === goal) break
+        if (cellsEqual(current, goal)) break
 
         map.neighbors(current).forEach((next) => {
             const nextCost = costSoFar.get(next)
-            const newCost = (nextCost || 1) + map.getDanger(next)
+            const curCost = costSoFar.get(current)
+            const newCost = (curCost || 0) + 1 + map.getDanger(next)
             if (nextCost === null || newCost < nextCost) {
                 costSoFar.set(next, newCost)
                 const priority = newCost + heuristic(next, goal)
@@ -39,13 +43,15 @@ export function aStar(map: BattleMap, start: Coord, goal: Coord): null | AStarRe
 
     const nextMove = path[0]
     if (!nextMove) {
-        console.log('no path found :(')
         return null
     }
 
     const dir = getDir(start, nextMove)
     return {
+        path,
         dir,
+        costMap: costSoFar,
+        directions: cameFrom,
         costToNext: costSoFar.get(nextMove) || 0,
         costToGoal: costSoFar.get(goal) || 0,
     }

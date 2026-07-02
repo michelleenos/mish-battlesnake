@@ -1,7 +1,7 @@
-import type { Battlesnake, Coord, Game, GameState } from '../types'
-import { aStar, type AStarResult } from './astar'
-import { BattleMap } from './graph'
-import { dirs, cellsEqual } from './utils'
+import type { Battlesnake, Coord, GameState } from '../types'
+import { aStar, type AStarResult } from './astar.js'
+import { BattleMap } from './graph.js'
+import { dirs, cellsEqual, type Direction } from './utils.js'
 
 export interface Moves {
     up: boolean
@@ -54,19 +54,20 @@ function getMovesFromMap(map: BattleMap, you: Battlesnake) {
     return moves
 }
 
-function buildMap(state: GameState) {
+export function buildMap(state: GameState) {
     const map = new BattleMap(state.board.width, state.board.height)
 
-    state.board.snakes.forEach((snek) => {
-        snek.body.forEach((b) => map.setBlocked(b))
+    state.board.snakes.forEach((otherSnek) => {
+        otherSnek.body.forEach((b) => map.setBlocked(b))
 
-        if (snek.id !== state.you.id) {
-            const headNeighbors = map.neighbors(snek.head)
-            headNeighbors.forEach((c) => map.setDanger(c, 30))
-            snek.body.forEach((body) => {
+        if (otherSnek.id !== state.you.id) {
+            const headNeighbors = map.neighbors(otherSnek.head)
+            const amBigger = state.you.length > otherSnek.length + 1
+            otherSnek.body.forEach((body) => {
                 const bodyNeighbors = map.neighbors(body)
                 bodyNeighbors.forEach((n) => map.setDanger(n, 10))
             })
+            headNeighbors.forEach((c) => map.setDanger(c, amBigger ? 0 : 30, amBigger))
         }
     })
 
@@ -74,15 +75,29 @@ function buildMap(state: GameState) {
     const neck = state.you.body[1]
     const tail = state.you.body[state.you.body.length - 1]
     if (!cellsEqual(head, tail) && !cellsEqual(head, neck) && !cellsEqual(neck, tail)) {
-        // TODO investigate this bit
-        // it's ok to move to where our tail is... i think??? (hmm... what if you eat a food and grow tho?)
-        map.setBlocked(tail, false)
+        if (state.you.health < 100) {
+            // i think this means did i just eat? because if so, i will grow and then will be crashing into my tail
+            map.setBlocked(tail, false)
+        }
     }
 
     return map
 }
 
-function getClosestFoods(state: GameState, map: BattleMap, max = 3, maxDanger = 0) {
+export function getWeakerSneks(state: GameState) {
+    const you = state.you
+    const weakerSneks = state.board.snakes.filter((otherSnek) => {
+        if (otherSnek.id === you.id) return false
+        if (otherSnek.length + 1 < you.length) return true
+        return false
+    })
+
+    const weakerSnekHeads = weakerSneks.map((weakSnek) => weakSnek.head)
+
+    return { weakerSneks, weakerSnekHeads }
+}
+
+export function getClosestFoods(state: GameState, map: BattleMap, max = 3, maxDanger = 0) {
     const head = state.you.head
     const foods = state.board.food
     const nearestFoods = foods
@@ -100,6 +115,18 @@ function getClosestFoods(state: GameState, map: BattleMap, max = 3, maxDanger = 
         })
         .slice(0, max)
     return nearestFoods
+}
+
+function attackWeakerSneks(state: GameState, map: BattleMap) {
+    const { weakerSnekHeads } = getWeakerSneks(state)
+
+    const pathResults = weakerSnekHeads.map((h) => aStar(map, state.you.head, h))
+    const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3) as AStarResult[]
+    validResults.sort((a, b) => a.costToGoal - b.costToGoal)
+
+    if (validResults.length === 0) return null
+
+    return validResults[0].dir
 }
 
 function moveToFood(state: GameState, map: BattleMap) {
@@ -123,15 +150,28 @@ function moveToTail(state: GameState, map: BattleMap) {
 }
 
 export function getMove(state: GameState) {
-    console.log(state.you.length)
     const health = state.you.health
     const map = buildMap(state)
 
+    if (health > 50) {
+        const toWeakSnek = attackWeakerSneks(state, map)
+        if (toWeakSnek !== null) {
+            console.log(`moving ${toWeakSnek} to attack a weak snek`)
+            return toWeakSnek
+        }
+    }
+
     const toFood = moveToFood(state, map)
-    if (toFood !== null) return toFood
+    if (toFood !== null) {
+        console.log(`moving ${toFood} to a food`)
+        return toFood
+    }
 
     const toTail = moveToTail(state, map)
-    if (toTail !== null) return toTail
+    if (toTail !== null) {
+        console.log(`moving ${toTail} toward my tail?`)
+        return toTail
+    }
 
     // const toTail = move
 
