@@ -1,5 +1,6 @@
 import type { Battlesnake, Coord, GameState } from '../types'
 import { aStar, type AStarResult } from './astar.js'
+import { floodFill } from './floodfill.js'
 import { BattleMap } from './graph.js'
 import { dirs, cellsEqual } from './utils.js'
 
@@ -81,6 +82,23 @@ export function buildMap(state: GameState) {
         }
     }
 
+    const allCells = map.getAll()
+    const allFloodFills: { coord: Coord; fill: number }[] = []
+    let min = Infinity
+    let max = -Infinity
+    allCells.forEach((coord) => {
+        const fill = floodFill(map, coord)
+        allFloodFills.push({ coord, fill })
+        if (fill < min) min = fill
+        if (fill > max) max = fill
+    })
+    const mid = (max - min) / 2 + min
+    allFloodFills.forEach(({ coord, fill }) => {
+        if (fill < mid) {
+            map.setDanger(coord, 20)
+        }
+    })
+
     return map
 }
 
@@ -129,13 +147,18 @@ function attackWeakerSneks(state: GameState, map: BattleMap) {
     return validResults[0].dir
 }
 
-function moveToFood(state: GameState, map: BattleMap) {
+export function moveToFood(state: GameState, map: BattleMap) {
     const nearestFood = getClosestFoods(state, map)
     if (nearestFood.length === 0) return null
 
     const pathResults = nearestFood.map((f) => aStar(map, state.you.head, f))
     const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3) as AStarResult[]
-    validResults.sort((a, b) => a.costToGoal - b.costToGoal)
+    validResults.sort((a, b) => {
+        // const fillA = floodFill(map, dirs[a.dir](state.you.head))
+        // const fillB = floodFill(map, dirs[b.dir](state.you.head))
+        // if (fillA < fillB )
+        return a.costToGoal - b.costToGoal
+    })
 
     if (validResults.length === 0) return null
 
@@ -172,8 +195,6 @@ export function getMove(state: GameState) {
         console.log(`moving ${toTail} toward my tail?`)
         return toTail
     }
-
-    // const toTail = move
 
     console.log(`couldn't find a path to food, defaulting to safest moves`)
     const moves = getMovesFromMap(map, state.you)

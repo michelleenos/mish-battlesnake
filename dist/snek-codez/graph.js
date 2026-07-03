@@ -61,5 +61,16 @@ export class BattleMap extends MapGraph {
             return this.has(n) && !this.get(n).blocked;
         });
     }
+    getAll() {
+        const results = [];
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                const coord = { x, y };
+                if (!this.get(coord).blocked)
+                    results.push(coord);
+            }
+        }
+        return results;
+    }
 }
 //# sourceMappingURL=graph.js.map

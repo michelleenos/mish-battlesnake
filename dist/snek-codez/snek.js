@@ -1,4 +1,5 @@
 import { aStar } from './astar.js';
+import { floodFill } from './floodfill.js';
 import { BattleMap } from './graph.js';
 import { dirs, cellsEqual } from './utils.js';
 function checkWalls(width, height, head, moves) {
@@ -68,6 +69,24 @@ export function buildMap(state) {
             map.setBlocked(tail, false);
         }
     }
+    const allCells = map.getAll();
+    const allFloodFills = [];
+    let min = Infinity;
+    let max = -Infinity;
+    allCells.forEach((coord) => {
+        const fill = floodFill(map, coord);
+        allFloodFills.push({ coord, fill });
+        if (fill < min)
+            min = fill;
+        if (fill > max)
+            max = fill;
+    });
+    const mid = (max - min) / 2 + min;
+    allFloodFills.forEach(({ coord, fill }) => {
+        if (fill < mid) {
+            map.setDanger(coord, 20);
+        }
+    });
     return map;
 }
 export function getWeakerSneks(state) {
@@ -109,13 +128,18 @@ function attackWeakerSneks(state, map) {
         return null;
     return validResults[0].dir;
 }
-function moveToFood(state, map) {
+export function moveToFood(state, map) {
     const nearestFood = getClosestFoods(state, map);
     if (nearestFood.length === 0)
         return null;
     const pathResults = nearestFood.map((f) => aStar(map, state.you.head, f));
     const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3);
-    validResults.sort((a, b) => a.costToGoal - b.costToGoal);
+    validResults.sort((a, b) => {
+        // const fillA = floodFill(map, dirs[a.dir](state.you.head))
+        // const fillB = floodFill(map, dirs[b.dir](state.you.head))
+        // if (fillA < fillB )
+        return a.costToGoal - b.costToGoal;
+    });
     if (validResults.length === 0)
         return null;
     return validResults[0].dir;
@@ -147,7 +171,6 @@ export function getMove(state) {
         console.log(`moving ${toTail} toward my tail?`);
         return toTail;
     }
-    // const toTail = move
     console.log(`couldn't find a path to food, defaulting to safest moves`);
     const moves = getMovesFromMap(map, state.you);
     const movesStrings = Object.keys(moves).filter((key) => moves[key]);
