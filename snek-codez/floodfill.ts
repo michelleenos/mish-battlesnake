@@ -1,4 +1,4 @@
-import type { Coord, Game, GameState } from '../types'
+import type { Coord, GameState } from '../types'
 import { BattleMap } from './graph.js'
 import { coordToKey, keyToCoord, type NodeKey } from './utils.js'
 

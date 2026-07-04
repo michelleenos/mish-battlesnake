@@ -2,7 +2,7 @@ import type { Customizations, GameState } from '../types'
 import { aStar, type AStarResult } from './astar.js'
 import { floodFillMap } from './floodfill.js'
 import { BattleMap } from './graph.js'
-import { cellsEqual, getDir, manhattanDistance } from './utils.js'
+import { cellsEqual, getDir, manhattanDistance, type Direction } from './utils.js'
 
 export interface SnekConfig {
     name: string
@@ -92,15 +92,15 @@ function attackWeakerSneks(state: GameState, map: BattleMap, config: SnekConfig)
     return validResults[0].dir
 }
 
-export function getClosestFoods(state: GameState, map: BattleMap, maxDanger = 10) {
+export function getClosestFoods(state: GameState, _map: BattleMap) {
     const head = state.you.head
     const foods = state.board.food
     const nearestFoods = foods
-        .filter((food) => {
-            const danger = map.getDanger(food)
-            if (danger > maxDanger) return false
-            return true
-        })
+        // .filter((food) => {
+        //     const danger = map.getDanger(food)
+        //     if (danger > maxDanger) return false
+        //     return true
+        // })
         .sort((a, b) => {
             return manhattanDistance(a, head) - manhattanDistance(b, head)
         })
@@ -119,17 +119,17 @@ export function moveToFood(state: GameState, map: BattleMap) {
 
     if (validResults.length === 0) return null
 
-    return validResults[0].dir
+    return validResults[0]
 }
 
 export function moveToTail(state: GameState, map: BattleMap) {
     const tail = state.you.body[state.you.body.length - 1]
     const pathResults = aStar(map, state.you.head, tail)
     if (pathResults === null) return null
-    return pathResults.dir
+    return pathResults
 }
 
-export function getMove(state: GameState, config: SnekConfig) {
+export function getMove(state: GameState, config: SnekConfig): Direction {
     const health = state.you.health
     const { map } = buildMap(state, config)
 
@@ -139,7 +139,7 @@ export function getMove(state: GameState, config: SnekConfig) {
 
     if (shouldEat && toFood !== null) {
         console.log(`moving ${toFood} to a food`)
-        return toFood
+        return toFood.dir
     }
 
     const toWeakSnek = config.attackMaxCost > 0 ? attackWeakerSneks(state, map, config) : null
@@ -148,15 +148,15 @@ export function getMove(state: GameState, config: SnekConfig) {
         return toWeakSnek
     }
 
-    if (couldEat && toFood !== null) {
-        console.log(`moving ${toFood} to a food (i *could* eat)`)
-        return toFood
-    }
-
     const toTail = moveToTail(state, map)
+
+    if (couldEat && toFood !== null) {
+        if (toTail !== null && toFood.costToNext < toTail.costToNext) {
+            return toFood.dir
+        }
+    }
     if (toTail !== null) {
-        console.log(`moving ${toTail} toward my tail`)
-        return toTail
+        return toTail.dir
     }
 
     const neighbors = map

@@ -1,6 +1,6 @@
 import { sneks } from '../configs.js'
 import { aStar, type AStarResult } from '../snek-codez/astar.js'
-import { floodFill, floodFillCells, floodFillMap } from '../snek-codez/floodfill.js'
+import { floodFillCells } from '../snek-codez/floodfill.js'
 import { buildMap, getClosestFoods, moveToFood, type SnekConfig } from '../snek-codez/snek.js'
 import { dirs } from '../snek-codez/utils.js'
 import type { Battlesnake, Coord, GameState } from '../types.js'
@@ -11,6 +11,7 @@ import type { Battlesnake, Coord, GameState } from '../types.js'
 const config: SnekConfig = sneks.hangry
 config.avoidWalls = 2
 
+// @ts-ignore
 const sampleBody: Coord[] = [
     // { x: 10, y: 9 },
     // { x: 10, y: 8 },
@@ -69,6 +70,7 @@ const longBody: Coord[] = [
     { x: 1, y: 1 },
 ]
 
+// @ts-ignore
 const enemyBody1 = [
     { x: 8, y: 0 },
     { x: 8, y: 1 },
@@ -371,8 +373,8 @@ ctx.lineWidth = 1
 
 // 4. draw the move moveToFood actually returns: an arrow from our head
 if (chosenDir) {
-    const delta = dirs[chosenDir](head)
     const fromX = cx(head.x)
+    const delta = dirs[chosenDir.dir](head)
     const fromY = cy(head.y)
     const toX = cx(delta.x)
     const toY = cy(delta.y)

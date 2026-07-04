@@ -62,16 +62,15 @@ function attackWeakerSneks(state, map, config) {
         return null;
     return validResults[0].dir;
 }
-export function getClosestFoods(state, map, maxDanger = 10) {
+export function getClosestFoods(state, _map) {
     const head = state.you.head;
     const foods = state.board.food;
     const nearestFoods = foods
-        .filter((food) => {
-        const danger = map.getDanger(food);
-        if (danger > maxDanger)
-            return false;
-        return true;
-    })
+        // .filter((food) => {
+        //     const danger = map.getDanger(food)
+        //     if (danger > maxDanger) return false
+        //     return true
+        // })
         .sort((a, b) => {
         return manhattanDistance(a, head) - manhattanDistance(b, head);
     });
@@ -88,14 +87,14 @@ export function moveToFood(state, map) {
     });
     if (validResults.length === 0)
         return null;
-    return validResults[0].dir;
+    return validResults[0];
 }
 export function moveToTail(state, map) {
     const tail = state.you.body[state.you.body.length - 1];
     const pathResults = aStar(map, state.you.head, tail);
     if (pathResults === null)
         return null;
-    return pathResults.dir;
+    return pathResults;
 }
 export function getMove(state, config) {
     const health = state.you.health;
@@ -105,21 +104,21 @@ export function getMove(state, config) {
     const toFood = moveToFood(state, map);
     if (shouldEat && toFood !== null) {
         console.log(`moving ${toFood} to a food`);
-        return toFood;
+        return toFood.dir;
     }
     const toWeakSnek = config.attackMaxCost > 0 ? attackWeakerSneks(state, map, config) : null;
     if (toWeakSnek !== null) {
         console.log(`moving ${toWeakSnek} to attack a weak snek`);
         return toWeakSnek;
     }
-    if (couldEat && toFood !== null) {
-        console.log(`moving ${toFood} to a food (i *could* eat)`);
-        return toFood;
-    }
     const toTail = moveToTail(state, map);
+    if (couldEat && toFood !== null) {
+        if (toTail !== null && toFood.costToNext < toTail.costToNext) {
+            return toFood.dir;
+        }
+    }
     if (toTail !== null) {
-        console.log(`moving ${toTail} toward my tail`);
-        return toTail;
+        return toTail.dir;
     }
     const neighbors = map
         .neighbors(state.you.head)

@@ -1,12 +1,13 @@
 import { sneks } from '../configs.js';
 import { aStar } from '../snek-codez/astar.js';
-import { floodFill, floodFillCells, floodFillMap } from '../snek-codez/floodfill.js';
+import { floodFillCells } from '../snek-codez/floodfill.js';
 import { buildMap, getClosestFoods, moveToFood } from '../snek-codez/snek.js';
 import { dirs } from '../snek-codez/utils.js';
 // script to visualize the results of a* algorithm, for debugging purposes
 // ai wrote this part, mostly. it did not write my snake code!
 const config = sneks.hangry;
 config.avoidWalls = 2;
+// @ts-ignore
 const sampleBody = [
     // { x: 10, y: 9 },
     // { x: 10, y: 8 },
@@ -63,6 +64,7 @@ const longBody = [
     { x: 2, y: 1 },
     { x: 1, y: 1 },
 ];
+// @ts-ignore
 const enemyBody1 = [
     { x: 8, y: 0 },
     { x: 8, y: 1 },
@@ -330,8 +332,8 @@ foodResults.forEach((fr, i) => {
 ctx.lineWidth = 1;
 // 4. draw the move moveToFood actually returns: an arrow from our head
 if (chosenDir) {
-    const delta = dirs[chosenDir](head);
     const fromX = cx(head.x);
+    const delta = dirs[chosenDir.dir](head);
     const fromY = cy(head.y);
     const toX = cx(delta.x);
     const toY = cy(delta.y);
