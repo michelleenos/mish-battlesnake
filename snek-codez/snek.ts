@@ -1,61 +1,25 @@
-import type { Battlesnake, Coord, GameState } from '../types'
+import type { Customizations, GameState } from '../types'
 import { aStar, type AStarResult } from './astar.js'
-import { floodFill } from './floodfill.js'
+import { floodFillMap } from './floodfill.js'
 import { BattleMap } from './graph.js'
-import { dirs, cellsEqual } from './utils.js'
+import { cellsEqual, getDir, manhattanDistance } from './utils.js'
 
-export interface Moves {
-    up: boolean
-    down: boolean
-    left: boolean
-    right: boolean
+export interface SnekConfig {
+    name: string
+    customizations: Customizations
+    // max cost of first step to attack (set to 0 for no attacking)
+    attackMaxCost: number
+    // health at which snake prioritizes looking for food
+    shouldEatThreshold: number
+    // health at which snake is willing to eat food
+    couldEatThreshold: number
+    // amount of danger set right next to walls
+    avoidWalls: number
+    // the amount of danger set around other snek bodies
+    avoidBodies: number
 }
 
-function checkWalls(width: number, height: number, head: Coord, moves: Moves) {
-    if (head.x === width - 1) moves.right = false
-    if (head.y === height - 1) moves.up = false
-    if (head.x === 0) moves.left = false
-    if (head.y === 0) moves.down = false
-
-    return moves
-}
-
-function checkSnek(you: Battlesnake, other: Battlesnake, moves: Moves) {
-    const head = you.head
-
-    for (const obs of other.body) {
-        if (cellsEqual(dirs.left(head), obs)) moves.left = false
-        if (cellsEqual(dirs.right(head), obs)) moves.right = false
-        if (cellsEqual(dirs.up(head), obs)) moves.up = false
-        if (cellsEqual(dirs.down(head), obs)) moves.down = false
-    }
-
-    return moves
-}
-
-export function getSafeMoves(state: GameState) {
-    const moves = { up: true, down: true, right: true, left: true }
-    checkWalls(state.board.width, state.board.height, state.you.head, moves)
-
-    state.board.snakes.forEach((s) => checkSnek(state.you, s, moves))
-
-    return moves
-}
-
-function getMovesFromMap(map: BattleMap, you: Battlesnake) {
-    const moves = { up: true, down: true, right: true, left: true }
-
-    checkWalls(map.width, map.height, you.head, moves)
-
-    if (moves.up && map.get(dirs.up(you.head)).blocked) moves.up = false
-    if (moves.down && map.get(dirs.down(you.head)).blocked) moves.down = false
-    if (moves.left && map.get(dirs.left(you.head)).blocked) moves.left = false
-    if (moves.right && map.get(dirs.right(you.head)).blocked) moves.right = false
-
-    return moves
-}
-
-export function buildMap(state: GameState) {
+export function buildMap(state: GameState, config: SnekConfig) {
     const map = new BattleMap(state.board.width, state.board.height)
 
     state.board.snakes.forEach((otherSnek) => {
@@ -64,9 +28,12 @@ export function buildMap(state: GameState) {
         if (otherSnek.id !== state.you.id) {
             const headNeighbors = map.neighbors(otherSnek.head)
             const amBigger = state.you.length > otherSnek.length + 1
-            otherSnek.body.forEach((body) => {
+            const body = otherSnek.body.slice(1)
+            body.forEach((body) => {
                 const bodyNeighbors = map.neighbors(body)
-                bodyNeighbors.forEach((n) => map.setDanger(n, 10))
+                bodyNeighbors.forEach((n) => {
+                    map.setDanger(n, config.avoidBodies)
+                })
             })
             headNeighbors.forEach((c) => map.setDanger(c, amBigger ? 0 : 30, amBigger))
         }
@@ -77,27 +44,28 @@ export function buildMap(state: GameState) {
     const tail = state.you.body[state.you.body.length - 1]
     if (!cellsEqual(head, tail) && !cellsEqual(head, neck) && !cellsEqual(neck, tail)) {
         if (state.you.health < 100) {
-            // i think this means did i just eat? because if so, i will grow and then will be crashing into my tail
+            // because i thinkkkk health = 100 means i just ate? and if so, i will grow and then will be crashing into my tail
             map.setBlocked(tail, false)
         }
     }
 
-    const allCells = map.getAll()
-    const allFloodFills: { coord: Coord; fill: number }[] = []
-    let min = Infinity
-    let max = -Infinity
-    allCells.forEach((coord) => {
-        const fill = floodFill(map, coord)
-        allFloodFills.push({ coord, fill })
-        if (fill < min) min = fill
-        if (fill > max) max = fill
+    floodFillMap(map)
+
+    map.getAll().forEach((coord) => {
+        const cell = map.get(coord)
+        if (cell.fill && cell.fill < state.you.length) map.setDanger(coord, 30)
     })
-    const mid = (max - min) / 2 + min
-    allFloodFills.forEach(({ coord, fill }) => {
-        if (fill < mid) {
-            map.setDanger(coord, 20)
+
+    if (config.avoidWalls > 0) {
+        for (let x = 0; x < state.board.width; x++) {
+            map.setDanger({ x, y: 0 }, config.avoidWalls)
+            map.setDanger({ x, y: state.board.height - 1 }, config.avoidWalls)
         }
-    })
+        for (let y = 0; y < state.board.height; y++) {
+            map.setDanger({ x: 0, y }, config.avoidWalls)
+            map.setDanger({ x: state.board.width - 1, y }, config.avoidWalls)
+        }
+    }
 
     return map
 }
@@ -115,7 +83,21 @@ export function getWeakerSneks(state: GameState) {
     return { weakerSneks, weakerSnekHeads }
 }
 
-export function getClosestFoods(state: GameState, map: BattleMap, max = 3, maxDanger = 0) {
+function attackWeakerSneks(state: GameState, map: BattleMap, config: SnekConfig) {
+    const { weakerSnekHeads } = getWeakerSneks(state)
+
+    const pathResults = weakerSnekHeads.map((h) => aStar(map, state.you.head, h))
+    const validResults = pathResults.filter(
+        (r) => r !== null && r.costToNext <= config.attackMaxCost,
+    ) as AStarResult[]
+    validResults.sort((a, b) => a.costToGoal - b.costToGoal)
+
+    if (validResults.length === 0) return null
+
+    return validResults[0].dir
+}
+
+export function getClosestFoods(state: GameState, map: BattleMap, maxDanger = 10) {
     const head = state.you.head
     const foods = state.board.food
     const nearestFoods = foods
@@ -125,26 +107,9 @@ export function getClosestFoods(state: GameState, map: BattleMap, max = 3, maxDa
             return true
         })
         .sort((a, b) => {
-            return (
-                Math.abs(a.x - head.x) +
-                Math.abs(a.y - head.y) -
-                (Math.abs(b.x - head.x) + Math.abs(b.y - head.y))
-            )
+            return manhattanDistance(a, head) - manhattanDistance(b, head)
         })
-        .slice(0, max)
     return nearestFoods
-}
-
-function attackWeakerSneks(state: GameState, map: BattleMap) {
-    const { weakerSnekHeads } = getWeakerSneks(state)
-
-    const pathResults = weakerSnekHeads.map((h) => aStar(map, state.you.head, h))
-    const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3) as AStarResult[]
-    validResults.sort((a, b) => a.costToGoal - b.costToGoal)
-
-    if (validResults.length === 0) return null
-
-    return validResults[0].dir
 }
 
 export function moveToFood(state: GameState, map: BattleMap) {
@@ -154,9 +119,6 @@ export function moveToFood(state: GameState, map: BattleMap) {
     const pathResults = nearestFood.map((f) => aStar(map, state.you.head, f))
     const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3) as AStarResult[]
     validResults.sort((a, b) => {
-        // const fillA = floodFill(map, dirs[a.dir](state.you.head))
-        // const fillB = floodFill(map, dirs[b.dir](state.you.head))
-        // if (fillA < fillB )
         return a.costToGoal - b.costToGoal
     })
 
@@ -165,43 +127,54 @@ export function moveToFood(state: GameState, map: BattleMap) {
     return validResults[0].dir
 }
 
-function moveToTail(state: GameState, map: BattleMap) {
+export function moveToTail(state: GameState, map: BattleMap) {
     const tail = state.you.body[state.you.body.length - 1]
     const pathResults = aStar(map, state.you.head, tail)
     if (pathResults === null) return null
     return pathResults.dir
 }
 
-export function getMove(state: GameState) {
+export function getMove(state: GameState, config: SnekConfig) {
     const health = state.you.health
-    const map = buildMap(state)
+    const map = buildMap(state, config)
 
-    if (health > 50) {
-        const toWeakSnek = attackWeakerSneks(state, map)
-        if (toWeakSnek !== null) {
-            console.log(`moving ${toWeakSnek} to attack a weak snek`)
-            return toWeakSnek
-        }
+    const shouldEat = health < config.shouldEatThreshold
+    const couldEat = health < config.couldEatThreshold
+    const toFood = moveToFood(state, map)
+
+    if (shouldEat && toFood !== null) {
+        console.log(`moving ${toFood} to a food`)
+        return toFood
     }
 
-    const toFood = moveToFood(state, map)
-    if (toFood !== null) {
-        console.log(`moving ${toFood} to a food`)
+    const toWeakSnek = config.attackMaxCost > 0 ? attackWeakerSneks(state, map, config) : null
+    if (toWeakSnek !== null) {
+        console.log(`moving ${toWeakSnek} to attack a weak snek`)
+        return toWeakSnek
+    }
+
+    if (couldEat && toFood !== null) {
+        console.log(`moving ${toFood} to a food (i *could* eat)`)
         return toFood
     }
 
     const toTail = moveToTail(state, map)
     if (toTail !== null) {
-        console.log(`moving ${toTail} toward my tail?`)
+        console.log(`moving ${toTail} toward my tail`)
         return toTail
     }
 
-    console.log(`couldn't find a path to food, defaulting to safest moves`)
-    const moves = getMovesFromMap(map, state.you)
-    const movesStrings = (Object.keys(moves) as (keyof typeof moves)[]).filter((key) => moves[key])
-    if (movesStrings.length === 0) {
-        console.log('no safe moves!!!')
-        return 'up'
-    }
-    return movesStrings[Math.floor(Math.random() * movesStrings.length)]
+    console.log(`choosing the least dangerous direction??`)
+    const neighbors = map
+        .neighbors(state.you.head)
+        .sort((a, b) => map.getDanger(a) - map.getDanger(b))
+    return getDir(state.you.head, neighbors[0])
+
+    // const moves = getMovesFromMap(map, state.you)
+    // const movesStrings = (Object.keys(moves) as (keyof typeof moves)[]).filter((key) => moves[key])
+    // if (movesStrings.length === 0) {
+    //     console.log('no safe moves!!!')
+    //     return 'up'
+    // }
+    // return movesStrings[Math.floor(Math.random() * movesStrings.length)]
 }

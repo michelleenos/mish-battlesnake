@@ -21,4 +21,7 @@ export const keyToCoord = (k) => {
     let arr = k.split('-');
     return { x: +arr[0], y: +arr[1] };
 };
+export const manhattanDistance = (c1, c2) => {
+    return Math.abs(c1.x - c2.x) + Math.abs(c1.y - c2.y);
+};
 //# sourceMappingURL=utils.js.map

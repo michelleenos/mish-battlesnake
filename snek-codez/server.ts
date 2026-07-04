@@ -1,42 +1,50 @@
 import express from 'express'
 import type { Request, Response, NextFunction } from 'express'
+import type { GameState, InfoResponse, MoveResponse } from '../types'
+import { getMove, type SnekConfig } from './snek.js'
 
 export interface BattlesnakeHandlers {
-    info: Function
-    start: Function
-    move: Function
-    end: Function
+    info: () => InfoResponse
+    start: (state: GameState) => void
+    move: (state: GameState) => MoveResponse
+    end: (state: GameState) => void
 }
 
-export default function runServer(handlers: BattlesnakeHandlers) {
+export default function runServer(snek: SnekConfig, port: number) {
     const app = express()
     app.use(express.json())
 
-    app.get('/', (_req: Request, res: Response) => {
-        res.send(handlers.info())
+    app.get('/', (_req: Request, res: Response<InfoResponse>) => {
+        res.send({
+            apiversion: '1',
+            author: 'mish',
+            ...snek.customizations,
+        })
     })
 
-    app.post('/start', (req: Request, res: Response) => {
-        handlers.start(req.body)
+    app.post('/start', (_req: Request, res: Response) => {
+        console.log(`GAME START: ${snek.name}`)
         res.send('ok')
     })
 
     app.post('/move', (req: Request, res: Response) => {
-        res.send(handlers.move(req.body))
+        const state = req.body
+        const move = getMove(state, snek)
+        console.log(`${snek.name} MOVE ${state.turn}: ${move}`)
+        res.send({ move })
     })
 
-    app.post('/end', (req: Request, res: Response) => {
-        handlers.end(req.body)
+    app.post('/end', (_req: Request, res: Response) => {
+        console.log(`GAME END: ${snek.name}`)
         res.send('ok')
     })
 
     app.use(function (_req: Request, res: Response, next: NextFunction) {
-        res.set('Server', 'battlesnake/github/starter-snake-typescript')
+        res.set('Server', 'mish-snek-friend')
         next()
     })
 
     const host = '0.0.0.0'
-    const port = parseInt(process.env.PORT || '8000')
 
     app.listen(port, host, () => {
         console.log(`Running Battlesnake at http://${host}:${port}...`)

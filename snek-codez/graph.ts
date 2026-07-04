@@ -36,6 +36,7 @@ export class MapGraph<T> {
 type WeightedCell = {
     blocked?: Boolean
     danger?: number
+    fill?: number
 }
 
 export class BattleMap extends MapGraph<WeightedCell> {
@@ -65,6 +66,16 @@ export class BattleMap extends MapGraph<WeightedCell> {
 
     getDanger(c: Coord) {
         return this.get(c).danger || 0
+    }
+
+    setFill(c: Coord, fill: number) {
+        const cell = this.get(c)
+        cell.fill = fill
+    }
+
+    getFill(c: Coord) {
+        const cell = this.get(c)
+        return cell.fill ?? undefined
     }
 
     neighbors(c: Coord): Coord[] {

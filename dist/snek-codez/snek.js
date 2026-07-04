@@ -1,61 +1,20 @@
 import { aStar } from './astar.js';
-import { floodFill } from './floodfill.js';
+import { floodFillMap } from './floodfill.js';
 import { BattleMap } from './graph.js';
-import { dirs, cellsEqual } from './utils.js';
-function checkWalls(width, height, head, moves) {
-    if (head.x === width - 1)
-        moves.right = false;
-    if (head.y === height - 1)
-        moves.up = false;
-    if (head.x === 0)
-        moves.left = false;
-    if (head.y === 0)
-        moves.down = false;
-    return moves;
-}
-function checkSnek(you, other, moves) {
-    const head = you.head;
-    for (const obs of other.body) {
-        if (cellsEqual(dirs.left(head), obs))
-            moves.left = false;
-        if (cellsEqual(dirs.right(head), obs))
-            moves.right = false;
-        if (cellsEqual(dirs.up(head), obs))
-            moves.up = false;
-        if (cellsEqual(dirs.down(head), obs))
-            moves.down = false;
-    }
-    return moves;
-}
-export function getSafeMoves(state) {
-    const moves = { up: true, down: true, right: true, left: true };
-    checkWalls(state.board.width, state.board.height, state.you.head, moves);
-    state.board.snakes.forEach((s) => checkSnek(state.you, s, moves));
-    return moves;
-}
-function getMovesFromMap(map, you) {
-    const moves = { up: true, down: true, right: true, left: true };
-    checkWalls(map.width, map.height, you.head, moves);
-    if (moves.up && map.get(dirs.up(you.head)).blocked)
-        moves.up = false;
-    if (moves.down && map.get(dirs.down(you.head)).blocked)
-        moves.down = false;
-    if (moves.left && map.get(dirs.left(you.head)).blocked)
-        moves.left = false;
-    if (moves.right && map.get(dirs.right(you.head)).blocked)
-        moves.right = false;
-    return moves;
-}
-export function buildMap(state) {
+import { cellsEqual, getDir, manhattanDistance } from './utils.js';
+export function buildMap(state, config) {
     const map = new BattleMap(state.board.width, state.board.height);
     state.board.snakes.forEach((otherSnek) => {
         otherSnek.body.forEach((b) => map.setBlocked(b));
         if (otherSnek.id !== state.you.id) {
             const headNeighbors = map.neighbors(otherSnek.head);
             const amBigger = state.you.length > otherSnek.length + 1;
-            otherSnek.body.forEach((body) => {
+            const body = otherSnek.body.slice(1);
+            body.forEach((body) => {
                 const bodyNeighbors = map.neighbors(body);
-                bodyNeighbors.forEach((n) => map.setDanger(n, 10));
+                bodyNeighbors.forEach((n) => {
+                    map.setDanger(n, config.avoidBodies);
+                });
             });
             headNeighbors.forEach((c) => map.setDanger(c, amBigger ? 0 : 30, amBigger));
         }
@@ -65,28 +24,26 @@ export function buildMap(state) {
     const tail = state.you.body[state.you.body.length - 1];
     if (!cellsEqual(head, tail) && !cellsEqual(head, neck) && !cellsEqual(neck, tail)) {
         if (state.you.health < 100) {
-            // i think this means did i just eat? because if so, i will grow and then will be crashing into my tail
+            // because i thinkkkk health = 100 means i just ate? and if so, i will grow and then will be crashing into my tail
             map.setBlocked(tail, false);
         }
     }
-    const allCells = map.getAll();
-    const allFloodFills = [];
-    let min = Infinity;
-    let max = -Infinity;
-    allCells.forEach((coord) => {
-        const fill = floodFill(map, coord);
-        allFloodFills.push({ coord, fill });
-        if (fill < min)
-            min = fill;
-        if (fill > max)
-            max = fill;
+    floodFillMap(map);
+    map.getAll().forEach((coord) => {
+        const cell = map.get(coord);
+        if (cell.fill && cell.fill < state.you.length)
+            map.setDanger(coord, 30);
     });
-    const mid = (max - min) / 2 + min;
-    allFloodFills.forEach(({ coord, fill }) => {
-        if (fill < mid) {
-            map.setDanger(coord, 20);
+    if (config.avoidWalls > 0) {
+        for (let x = 0; x < state.board.width; x++) {
+            map.setDanger({ x, y: 0 }, config.avoidWalls);
+            map.setDanger({ x, y: state.board.height - 1 }, config.avoidWalls);
         }
-    });
+        for (let y = 0; y < state.board.height; y++) {
+            map.setDanger({ x: 0, y }, config.avoidWalls);
+            map.setDanger({ x: state.board.width - 1, y }, config.avoidWalls);
+        }
+    }
     return map;
 }
 export function getWeakerSneks(state) {
@@ -101,7 +58,16 @@ export function getWeakerSneks(state) {
     const weakerSnekHeads = weakerSneks.map((weakSnek) => weakSnek.head);
     return { weakerSneks, weakerSnekHeads };
 }
-export function getClosestFoods(state, map, max = 3, maxDanger = 0) {
+function attackWeakerSneks(state, map, config) {
+    const { weakerSnekHeads } = getWeakerSneks(state);
+    const pathResults = weakerSnekHeads.map((h) => aStar(map, state.you.head, h));
+    const validResults = pathResults.filter((r) => r !== null && r.costToNext <= config.attackMaxCost);
+    validResults.sort((a, b) => a.costToGoal - b.costToGoal);
+    if (validResults.length === 0)
+        return null;
+    return validResults[0].dir;
+}
+export function getClosestFoods(state, map, maxDanger = 10) {
     const head = state.you.head;
     const foods = state.board.food;
     const nearestFoods = foods
@@ -112,21 +78,9 @@ export function getClosestFoods(state, map, max = 3, maxDanger = 0) {
         return true;
     })
         .sort((a, b) => {
-        return (Math.abs(a.x - head.x) +
-            Math.abs(a.y - head.y) -
-            (Math.abs(b.x - head.x) + Math.abs(b.y - head.y)));
-    })
-        .slice(0, max);
+        return manhattanDistance(a, head) - manhattanDistance(b, head);
+    });
     return nearestFoods;
-}
-function attackWeakerSneks(state, map) {
-    const { weakerSnekHeads } = getWeakerSneks(state);
-    const pathResults = weakerSnekHeads.map((h) => aStar(map, state.you.head, h));
-    const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3);
-    validResults.sort((a, b) => a.costToGoal - b.costToGoal);
-    if (validResults.length === 0)
-        return null;
-    return validResults[0].dir;
 }
 export function moveToFood(state, map) {
     const nearestFood = getClosestFoods(state, map);
@@ -135,49 +89,54 @@ export function moveToFood(state, map) {
     const pathResults = nearestFood.map((f) => aStar(map, state.you.head, f));
     const validResults = pathResults.filter((r) => r !== null && r.costToNext < 3);
     validResults.sort((a, b) => {
-        // const fillA = floodFill(map, dirs[a.dir](state.you.head))
-        // const fillB = floodFill(map, dirs[b.dir](state.you.head))
-        // if (fillA < fillB )
         return a.costToGoal - b.costToGoal;
     });
     if (validResults.length === 0)
         return null;
     return validResults[0].dir;
 }
-function moveToTail(state, map) {
+export function moveToTail(state, map) {
     const tail = state.you.body[state.you.body.length - 1];
     const pathResults = aStar(map, state.you.head, tail);
     if (pathResults === null)
         return null;
     return pathResults.dir;
 }
-export function getMove(state) {
+export function getMove(state, config) {
     const health = state.you.health;
-    const map = buildMap(state);
-    if (health > 50) {
-        const toWeakSnek = attackWeakerSneks(state, map);
-        if (toWeakSnek !== null) {
-            console.log(`moving ${toWeakSnek} to attack a weak snek`);
-            return toWeakSnek;
-        }
-    }
+    const map = buildMap(state, config);
+    const shouldEat = health < config.shouldEatThreshold;
+    const couldEat = health < config.couldEatThreshold;
     const toFood = moveToFood(state, map);
-    if (toFood !== null) {
+    if (shouldEat && toFood !== null) {
         console.log(`moving ${toFood} to a food`);
+        return toFood;
+    }
+    const toWeakSnek = config.attackMaxCost > 0 ? attackWeakerSneks(state, map, config) : null;
+    if (toWeakSnek !== null) {
+        console.log(`moving ${toWeakSnek} to attack a weak snek`);
+        return toWeakSnek;
+    }
+    if (couldEat && toFood !== null) {
+        console.log(`moving ${toFood} to a food (i *could* eat)`);
         return toFood;
     }
     const toTail = moveToTail(state, map);
     if (toTail !== null) {
-        console.log(`moving ${toTail} toward my tail?`);
+        console.log(`moving ${toTail} toward my tail`);
         return toTail;
     }
-    console.log(`couldn't find a path to food, defaulting to safest moves`);
-    const moves = getMovesFromMap(map, state.you);
-    const movesStrings = Object.keys(moves).filter((key) => moves[key]);
-    if (movesStrings.length === 0) {
-        console.log('no safe moves!!!');
-        return 'up';
-    }
-    return movesStrings[Math.floor(Math.random() * movesStrings.length)];
+    console.log(`choosing the least dangerous direction??`);
+    const neighbors = map
+        .neighbors(state.you.head)
+        .sort((a, b) => map.getDanger(a) - map.getDanger(b));
+    return getDir(state.you.head, neighbors[0]);
+    // const moves = getMovesFromMap(map, state.you)
+    // const movesStrings = (Object.keys(moves) as (keyof typeof moves)[]).filter((key) => moves[key])
+    // if (movesStrings.length === 0) {
+    //     console.log('no safe moves!!!')
+    //     return 'up'
+    // }
+    // return movesStrings[Math.floor(Math.random() * movesStrings.length)]
 }
 //# sourceMappingURL=snek.js.map

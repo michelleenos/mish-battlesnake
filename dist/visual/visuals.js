@@ -1,9 +1,66 @@
+import { sneks } from '../configs.js';
 import { aStar } from '../snek-codez/astar.js';
 import { floodFillCells } from '../snek-codez/floodfill.js';
 import { buildMap, getClosestFoods, moveToFood } from '../snek-codez/snek.js';
 import { dirs } from '../snek-codez/utils.js';
 // script to visualize the results of a* algorithm, for debugging purposes
 // ai wrote this part, mostly. it did not write my snake code!
+const config = sneks.hangry;
+config.avoidWalls = 2;
+const sampleBody = [
+    // { x: 10, y: 9 },
+    // { x: 10, y: 8 },
+    { x: 9, y: 8 },
+    { x: 9, y: 9 },
+    { x: 8, y: 9 },
+    { x: 7, y: 9 },
+    { x: 6, y: 9 },
+    { x: 5, y: 9 },
+    { x: 5, y: 10 },
+    { x: 4, y: 10 },
+    { x: 3, y: 10 },
+];
+const enemyBody1 = [
+    { x: 8, y: 0 },
+    { x: 8, y: 1 },
+    { x: 8, y: 2 },
+    { x: 8, y: 3 },
+    { x: 9, y: 3 },
+    { x: 10, y: 3 },
+];
+const enemyBody2 = [
+    // { x: 0, y: 0 },
+    // { x: 0, y: 1 },
+    // { x: 0, y: 2 },
+    { x: 0, y: 3 },
+    { x: 1, y: 3 },
+    { x: 2, y: 3 },
+    { x: 3, y: 3 },
+    { x: 3, y: 2 },
+    { x: 3, y: 1 },
+    { x: 3, y: 0 },
+    { x: 4, y: 0 },
+    { x: 5, y: 0 },
+];
+const enemyBody3 = [
+    { x: 5, y: 6 },
+    { x: 6, y: 6 },
+    { x: 7, y: 6 },
+];
+const sampleSnek = (body, color) => {
+    return {
+        id: `${Math.random() * 10}`,
+        name: 'snek',
+        latency: '90',
+        health: 92,
+        body,
+        head: body[0],
+        length: body.length,
+        shout: '',
+        customizations: { color, head: '', tail: '' },
+    };
+};
+const sampleYou = sampleSnek(sampleBody, '#365aff');
 const sampleState = {
     game: {
         id: '1da8404e-a0ba-4b0a-9e85-e88daf242921',
@@ -16,15 +73,6 @@ const sampleState = {
                 hazardDamagePerTurn: 0,
                 hazardMap: '',
                 hazardMapAuthor: '',
-                // royale: {
-                //     shrinkEveryNTurns: 0,
-                // },
-                // squad: {
-                //     allowBodyCollisions: false,
-                //     sharedElimination: false,
-                //     sharedHealth: false,
-                //     sharedLength: false,
-                // },
             },
         },
         map: 'standard',
@@ -36,190 +84,19 @@ const sampleState = {
         height: 11,
         width: 11,
         snakes: [
-            {
-                id: 'gs_Skqck87mrPDTjmmJFMHMSRrB',
-                name: 'snek snek',
-                latency: '88',
-                health: 92,
-                body: [
-                    {
-                        x: 10,
-                        y: 9,
-                    },
-                    {
-                        x: 9,
-                        y: 9,
-                    },
-                    {
-                        x: 8,
-                        y: 9,
-                    },
-                    {
-                        x: 7,
-                        y: 9,
-                    },
-                    {
-                        x: 6,
-                        y: 9,
-                    },
-                    {
-                        x: 5,
-                        y: 9,
-                    },
-                    {
-                        x: 5,
-                        y: 10,
-                    },
-                    {
-                        x: 4,
-                        y: 10,
-                    },
-                    { x: 3, y: 10 },
-                ],
-                head: {
-                    x: 10,
-                    y: 9,
-                },
-                length: 9,
-                shout: '',
-                // squad: '',
-                customizations: {
-                    color: '#365aff',
-                    head: 'beluga',
-                    tail: 'curled',
-                },
-            },
-            {
-                id: 'gs_4B8gKqkHWVjCpTxSYMtDrqM6',
-                name: 'Hungry Bot',
-                latency: '1',
-                health: 98,
-                // curled into the bottom-right corner to seal off a 6-cell pocket
-                // (x:9-10, y:0-2)
-                body: [
-                    { x: 8, y: 0 },
-                    { x: 8, y: 1 },
-                    { x: 8, y: 2 },
-                    { x: 8, y: 3 },
-                    { x: 9, y: 3 },
-                    { x: 10, y: 3 },
-                ],
-                head: {
-                    x: 8,
-                    y: 0,
-                },
-                length: 6,
-                shout: '',
-                // squad: '',
-                customizations: {
-                    color: '#00cc00',
-                    head: 'alligator',
-                    tail: 'alligator',
-                },
-            },
-            {
-                id: 'gs_DYHjv6hrh8bRyGQKdPxhrrTW',
-                name: 'Scared Bot',
-                latency: '1',
-                health: 90,
-                body: [
-                    // { x: 0, y: 0 },
-                    // { x: 0, y: 1 },
-                    // { x: 0, y: 2 },
-                    { x: 0, y: 3 },
-                    { x: 1, y: 3 },
-                    { x: 2, y: 3 },
-                    { x: 3, y: 3 },
-                    { x: 3, y: 2 },
-                    { x: 3, y: 1 },
-                    { x: 3, y: 0 },
-                ],
-                head: {
-                    x: 0,
-                    y: 3,
-                },
-                length: 7,
-                shout: '',
-                // squad: '',
-                customizations: {
-                    color: '#000000',
-                    head: 'bendr',
-                    tail: 'curled',
-                },
-            },
+            sampleYou,
+            sampleSnek(enemyBody1, '#ff00ff'),
+            sampleSnek(enemyBody2, '#00ff00'),
+            sampleSnek(enemyBody3, '#ffff00'),
         ],
         food: [
-            {
-                x: 7,
-                y: 10,
-            },
-            {
-                x: 8,
-                y: 7,
-            },
-            {
-                x: 5,
-                y: 8,
-            },
+            { x: 7, y: 10 },
+            // { x: 8, y: 5 },
+            { x: 0, y: 5 },
         ],
         hazards: [],
     },
-    you: {
-        id: 'gs_Skqck87mrPDTjmmJFMHMSRrB',
-        name: 'snek snek',
-        latency: '88',
-        health: 92,
-        body: [
-            {
-                x: 10,
-                y: 9,
-            },
-            {
-                x: 9,
-                y: 9,
-            },
-            {
-                x: 8,
-                y: 9,
-            },
-            {
-                x: 7,
-                y: 9,
-            },
-            {
-                x: 6,
-                y: 9,
-            },
-            {
-                x: 5,
-                y: 9,
-            },
-            {
-                x: 5,
-                y: 10,
-            },
-            {
-                x: 4,
-                y: 10,
-            },
-            {
-                x: 3,
-                y: 10,
-            },
-        ],
-        head: {
-            x: 10,
-            y: 9,
-        },
-        length: 8,
-        shout: '',
-        // squad: '',
-        customizations: {
-            color: '#365aff',
-            head: 'beluga',
-            tail: 'curled',
-        },
-    },
+    you: sampleYou,
 };
 const state = sampleState;
 const canvas = document.createElement('canvas');
@@ -241,19 +118,22 @@ const px = (x) => x * cellW;
 const py = (y) => (height - 1 - y) * cellH;
 const cx = (x) => px(x) + cellW / 2;
 const cy = (y) => py(y) + cellH / 2;
-const map = buildMap(state);
+const map = buildMap(state, config);
+console.log(map);
 // mirror what moveToFood does: take the closest foods and A* to each of them
 const targetFoods = getClosestFoods(state, map);
 const foodResults = targetFoods
     .map((food) => ({ food, result: aStar(map, state.you.head, food) }))
     .filter((fr) => fr.result !== null);
 // replicate moveToFood's selection so we can highlight the winning path/costMap
-const rankedResults = [...foodResults]
-    .filter((fr) => fr.result.costToNext < 3)
+const rankedFoodResults = [...foodResults]
+    .filter((fr) => fr.result.costToNext < 20)
     .sort((a, b) => a.result.costToGoal - b.result.costToGoal);
-const chosen = rankedResults[0] ?? null;
+const chosen = rankedFoodResults[0] ?? null;
 // the direction moveToFood actually returns
 const chosenDir = moveToFood(state, map);
+const tail = state.you.body[state.you.body.length - 1];
+const resultToTail = aStar(map, state.you.head, tail);
 // a distinct color per candidate food/path
 const pathColors = ['#0044ff', '#e6194b', '#3cb44b', '#f58231', '#911eb4'];
 const colorFor = (i) => pathColors[i % pathColors.length];
@@ -282,8 +162,23 @@ const pathCellColor = new Map();
 foodResults.forEach((fr, i) => {
     fr.result.path.forEach((c) => pathCellColor.set(`${c.x}-${c.y}`, colorFor(i)));
 });
-// overlay the aStar cost numbers from the winning path's costMap
-const costMap = chosen?.result.costMap;
+if (resultToTail) {
+    resultToTail.path.forEach((c) => pathCellColor.set(`${c.x}-${c.y}`, colorFor(4)));
+}
+const costMaps = foodResults.map(({ result }) => {
+    return result.costMap;
+});
+if (resultToTail)
+    costMaps.push(resultToTail.costMap);
+const getCost = (c) => {
+    for (let i = 0; i < costMaps.length; i++) {
+        let costFromMap = costMaps[i].get(c);
+        if (costFromMap !== null)
+            return costFromMap;
+    }
+};
+// const costMap = chosen?.result.costMap
+// const tailCostMap = resultToTail?.costMap
 // 1. draw each cell shaded by danger weight; overlay the aStar cost from costMap
 ctx.textAlign = 'center';
 ctx.textBaseline = 'middle';
@@ -305,19 +200,26 @@ for (let x = 0; x < width; x++) {
         }
         if (cell.blocked)
             continue;
+        ctx.textAlign = 'center';
         // accumulated cost A* computed for this cell (null = never explored)
-        const cost = costMap ? costMap.get({ x, y }) : null;
-        if (cost !== null && cost !== undefined) {
+        let cost = getCost({ x, y });
+        if (cost !== undefined) {
             ctx.fillStyle = '#0044aa';
             ctx.font = 'bold 12px sans-serif';
-            ctx.fillText(String(cost), cx(x), cy(y) - 6);
+            ctx.fillText(String(cost), cx(x) - 10, cy(y) - 6);
         }
+        if (x === 10 && y === 9)
+            console.log({ cost });
         // danger weight shown smaller, below the cost
         if (danger > 0) {
             ctx.fillStyle = '#aa0000';
             ctx.font = '9px sans-serif';
             ctx.fillText(`d${danger}`, cx(x), cy(y) + 7);
         }
+        ctx.font = '9px sans-serif';
+        ctx.fillStyle = '#000000';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${x}, ${y}`, cx(x) - 17, cy(y) + 15);
     }
 }
 // 1b. overlay each flood fill region: hatch its reachable cells in the seed's color
@@ -369,7 +271,7 @@ foodResults.forEach((fr, i) => {
     const isChosen = chosen?.food === fr.food;
     // line from head through every cell on the path
     ctx.strokeStyle = color;
-    ctx.lineWidth = isChosen ? 4 : 2;
+    ctx.lineWidth = isChosen ? 2 : 1;
     ctx.beginPath();
     ctx.moveTo(cx(head.x), cy(head.y));
     fr.result.path.forEach((c) => ctx.lineTo(cx(c.x), cy(c.y)));

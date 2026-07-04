@@ -1,9 +1,9 @@
 import type { Coord } from '../types'
 import { MapGraph, type BattleMap } from './graph.js'
-import { cellsEqual, getDir, type Direction } from './utils.js'
+import { cellsEqual, getDir, manhattanDistance, type Direction } from './utils.js'
 
 function heuristic(c1: Coord, c2: Coord) {
-    return Math.abs(c1.x - c2.x) + Math.abs(c1.y - c2.y)
+    return manhattanDistance(c1, c2)
 }
 
 export type AStarResult = {

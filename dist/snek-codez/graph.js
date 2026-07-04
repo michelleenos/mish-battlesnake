@@ -54,6 +54,14 @@ export class BattleMap extends MapGraph {
     getDanger(c) {
         return this.get(c).danger || 0;
     }
+    setFill(c, fill) {
+        const cell = this.get(c);
+        cell.fill = fill;
+    }
+    getFill(c) {
+        const cell = this.get(c);
+        return cell.fill ?? undefined;
+    }
     neighbors(c) {
         return Object.values(dirs)
             .map((move) => move(c))

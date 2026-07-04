@@ -1,7 +1,7 @@
 import { MapGraph } from './graph.js';
-import { cellsEqual, getDir } from './utils.js';
+import { cellsEqual, getDir, manhattanDistance } from './utils.js';
 function heuristic(c1, c2) {
-    return Math.abs(c1.x - c2.x) + Math.abs(c1.y - c2.y);
+    return manhattanDistance(c1, c2);
 }
 export function aStar(map, start, goal) {
     const frontier = [{ c: start, priority: 0 }];
