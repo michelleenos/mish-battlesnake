@@ -8,8 +8,7 @@ import type { Battlesnake, Coord, GameState } from '../types.js'
 // script to visualize the results of a* algorithm, for debugging purposes
 // ai wrote this part, mostly. it did not write my snake code!
 
-const config: SnekConfig = sneks.hangry
-config.avoidWalls = 2
+const config: SnekConfig = sneks.peaceful
 
 // @ts-ignore
 const sampleBody: Coord[] = [
@@ -26,6 +25,7 @@ const sampleBody: Coord[] = [
     { x: 3, y: 10 },
 ]
 
+// @ts-ignore
 const longBody: Coord[] = [
     { x: 6, y: 10 },
     { x: 6, y: 9 },
@@ -115,7 +115,7 @@ const sampleSnek = (body: Coord[], color: string): Battlesnake => {
     }
 }
 
-const sampleYou = sampleSnek(longBody, '#365aff')
+const sampleYou = sampleSnek(sampleBody, '#365aff')
 
 const sampleState: GameState = {
     game: {

@@ -156,10 +156,11 @@ export function getMove(state: GameState, config: SnekConfig): Direction {
         }
 
         const foodNext = dirs[toFood.dir](state.you.head)
-        if (isWall(foodNext, state.board.width, state.board.height)) {
+
+        if (toFood.path.length === 1 && isWall(foodNext, state.board.width, state.board.height)) {
             const foodNextCell = map.get(foodNext)
             if (foodNextCell.danger === config.avoidWalls) {
-                // don't avoid the food only because it's on a wall and is otherwise safe
+                // don't avoid a food right next to our head only because it's on a wall
                 return toFood.dir
             }
         }

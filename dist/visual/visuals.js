@@ -5,8 +5,7 @@ import { buildMap, getClosestFoods, moveToFood } from '../snek-codez/snek.js';
 import { dirs } from '../snek-codez/utils.js';
 // script to visualize the results of a* algorithm, for debugging purposes
 // ai wrote this part, mostly. it did not write my snake code!
-const config = sneks.hangry;
-config.avoidWalls = 2;
+const config = sneks.peaceful;
 // @ts-ignore
 const sampleBody = [
     // { x: 10, y: 9 },
@@ -21,6 +20,7 @@ const sampleBody = [
     { x: 4, y: 10 },
     { x: 3, y: 10 },
 ];
+// @ts-ignore
 const longBody = [
     { x: 6, y: 10 },
     { x: 6, y: 9 },
@@ -105,7 +105,7 @@ const sampleSnek = (body, color) => {
         customizations: { color, head: '', tail: '' },
     };
 };
-const sampleYou = sampleSnek(longBody, '#365aff');
+const sampleYou = sampleSnek(sampleBody, '#365aff');
 const sampleState = {
     game: {
         id: '1da8404e-a0ba-4b0a-9e85-e88daf242921',
