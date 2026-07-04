@@ -14,6 +14,19 @@ export const sneks = {
         avoidWalls: 0,
         avoidBodies: 2,
     },
+    angry: {
+        name: 'angry',
+        customizations: {
+            color: '#ff3609',
+            head: 'evil',
+            tail: 'tiger-tail',
+        },
+        attackMaxCost: 15,
+        couldEatThreshold: 50,
+        shouldEatThreshold: 30,
+        avoidWalls: 3,
+        avoidBodies: 1,
+    },
     chill: {
         name: 'chill',
         customizations: {

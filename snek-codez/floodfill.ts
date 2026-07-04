@@ -1,4 +1,4 @@
-import type { Coord } from '../types'
+import type { Coord, Game, GameState } from '../types'
 import { BattleMap } from './graph.js'
 import { coordToKey, keyToCoord, type NodeKey } from './utils.js'
 
@@ -24,18 +24,45 @@ export function floodFill(map: BattleMap, coord: Coord) {
     return floodFillCells(map, coord).size
 }
 
-export function floodFillMap(map: BattleMap) {
+export function floodFillMap(map: BattleMap, state: GameState) {
+    const regions: Set<NodeKey>[] = []
+    let min = Infinity
+    let max = -Infinity
     for (let x = 0; x < map.width; x++) {
         for (let y = 0; y < map.height; y++) {
-            let coord = { x, y }
-            let cell = map.get(coord)
+            const coord = { x, y }
+            const cell = map.get(coord)
             if (cell.blocked) continue
             if (cell.fill !== undefined) continue
 
-            let cells = floodFillCells(map, coord)
+            const cells = floodFillCells(map, coord)
+            regions.push(cells)
+            if (cells.size < min) min = cells.size
+            if (cells.size > max) max = cells.size
             cells.forEach((cell) => {
                 map.setFill(keyToCoord(cell), cells.size)
             })
         }
     }
+
+    const amTooBig = max < state.you.length
+    const mid = (max - min) / 2 + min
+    map.getAll().forEach((coord) => {
+        const cell = map.get(coord)
+        if (cell.fill && cell.fill < state.you.length) {
+            if (amTooBig) {
+                if (cell.fill < mid) {
+                    map.setDanger(coord, 30)
+                } else if (cell.fill < max) {
+                    map.setDanger(coord, 10)
+                } else {
+                    // fill === max, do nothing since this is ideal in this case
+                }
+            } else {
+                map.setDanger(coord, 30)
+            }
+        }
+    })
+
+    return { regions, min, max }
 }

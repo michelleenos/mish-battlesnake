@@ -1,6 +1,6 @@
 import { sneks } from '../configs.js'
 import { aStar, type AStarResult } from '../snek-codez/astar.js'
-import { floodFillCells } from '../snek-codez/floodfill.js'
+import { floodFill, floodFillCells, floodFillMap } from '../snek-codez/floodfill.js'
 import { buildMap, getClosestFoods, moveToFood, type SnekConfig } from '../snek-codez/snek.js'
 import { dirs } from '../snek-codez/utils.js'
 import type { Battlesnake, Coord, GameState } from '../types.js'
@@ -23,6 +23,50 @@ const sampleBody: Coord[] = [
     { x: 5, y: 10 },
     { x: 4, y: 10 },
     { x: 3, y: 10 },
+]
+
+const longBody: Coord[] = [
+    { x: 6, y: 10 },
+    { x: 6, y: 9 },
+    { x: 5, y: 9 },
+    { x: 4, y: 9 },
+    { x: 3, y: 9 },
+    { x: 2, y: 9 },
+    { x: 2, y: 10 },
+    { x: 1, y: 10 },
+    { x: 1, y: 9 },
+    { x: 0, y: 9 },
+    { x: 0, y: 8 },
+    { x: 1, y: 8 },
+    { x: 1, y: 7 },
+    { x: 1, y: 6 },
+    { x: 2, y: 6 },
+    { x: 3, y: 6 },
+    { x: 4, y: 6 },
+    { x: 5, y: 6 },
+    { x: 5, y: 5 },
+    { x: 5, y: 4 },
+    { x: 5, y: 3 },
+    { x: 6, y: 3 },
+    { x: 7, y: 3 },
+    { x: 8, y: 3 },
+    { x: 9, y: 3 },
+    { x: 9, y: 4 },
+    { x: 10, y: 4 },
+    { x: 10, y: 3 },
+    { x: 10, y: 2 },
+    { x: 10, y: 1 },
+    { x: 10, y: 0 },
+    { x: 9, y: 0 },
+    { x: 9, y: 1 },
+    { x: 8, y: 1 },
+    { x: 7, y: 1 },
+    { x: 6, y: 1 },
+    { x: 5, y: 1 },
+    { x: 4, y: 1 },
+    { x: 3, y: 1 },
+    { x: 2, y: 1 },
+    { x: 1, y: 1 },
 ]
 
 const enemyBody1 = [
@@ -50,9 +94,9 @@ const enemyBody2 = [
 ]
 
 const enemyBody3 = [
-    { x: 5, y: 6 },
     { x: 6, y: 6 },
     { x: 7, y: 6 },
+    { x: 8, y: 6 },
 ]
 
 const sampleSnek = (body: Coord[], color: string): Battlesnake => {
@@ -69,7 +113,7 @@ const sampleSnek = (body: Coord[], color: string): Battlesnake => {
     }
 }
 
-const sampleYou = sampleSnek(sampleBody, '#365aff')
+const sampleYou = sampleSnek(longBody, '#365aff')
 
 const sampleState: GameState = {
     game: {
@@ -95,7 +139,7 @@ const sampleState: GameState = {
         width: 11,
         snakes: [
             sampleYou,
-            sampleSnek(enemyBody1, '#ff00ff'),
+            // sampleSnek(enemyBody1, '#ff00ff'),
             sampleSnek(enemyBody2, '#00ff00'),
             sampleSnek(enemyBody3, '#ffff00'),
         ],
@@ -135,8 +179,11 @@ const py = (y: number) => (height - 1 - y) * cellH
 const cx = (x: number) => px(x) + cellW / 2
 const cy = (y: number) => py(y) + cellH / 2
 
-const map = buildMap(state, config)
+const { map, fillRegions } = buildMap(state, config)
 console.log(map)
+
+// const fillRegions = floodFillMap(map)
+console.log(fillRegions)
 
 // mirror what moveToFood does: take the closest foods and A* to each of them
 const targetFoods = getClosestFoods(state, map)
@@ -146,7 +193,7 @@ const foodResults = targetFoods
 
 // replicate moveToFood's selection so we can highlight the winning path/costMap
 const rankedFoodResults = [...foodResults]
-    .filter((fr) => fr.result.costToNext < 20)
+    // .filter((fr) => fr.result.costToNext < 20)
     .sort((a, b) => a.result.costToGoal - b.result.costToGoal)
 const chosen = rankedFoodResults[0] ?? null
 
@@ -160,10 +207,9 @@ const resultToTail = aStar(map, state.you.head, tail)
 const pathColors = ['#0044ff', '#e6194b', '#3cb44b', '#f58231', '#911eb4']
 const colorFor = (i: number) => pathColors[i % pathColors.length]
 
-// flood fill seeds: a couple sit inside the sealed corner pockets, one in open space
 const fillSeeds: { at: Coord; color: string; label: string }[] = [
     { at: { x: 1, y: 1 }, color: '#00b3b3', label: 'bottom-left pocket' },
-    { at: { x: 9, y: 1 }, color: '#c71585', label: 'bottom-right pocket' },
+    { at: { x: 1, y: 5 }, color: '#c71585', label: 'side' },
     { at: { x: 6, y: 5 }, color: '#7a7a00', label: 'open area' },
 ]
 const fillResults = fillSeeds.map((seed) => ({

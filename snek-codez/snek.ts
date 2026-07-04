@@ -49,12 +49,7 @@ export function buildMap(state: GameState, config: SnekConfig) {
         }
     }
 
-    floodFillMap(map)
-
-    map.getAll().forEach((coord) => {
-        const cell = map.get(coord)
-        if (cell.fill && cell.fill < state.you.length) map.setDanger(coord, 30)
-    })
+    const fillRegions = floodFillMap(map, state)
 
     if (config.avoidWalls > 0) {
         for (let x = 0; x < state.board.width; x++) {
@@ -67,7 +62,7 @@ export function buildMap(state: GameState, config: SnekConfig) {
         }
     }
 
-    return map
+    return { map, fillRegions }
 }
 
 export function getWeakerSneks(state: GameState) {
@@ -136,7 +131,7 @@ export function moveToTail(state: GameState, map: BattleMap) {
 
 export function getMove(state: GameState, config: SnekConfig) {
     const health = state.you.health
-    const map = buildMap(state, config)
+    const { map } = buildMap(state, config)
 
     const shouldEat = health < config.shouldEatThreshold
     const couldEat = health < config.couldEatThreshold
@@ -164,10 +159,14 @@ export function getMove(state: GameState, config: SnekConfig) {
         return toTail
     }
 
-    console.log(`choosing the least dangerous direction??`)
     const neighbors = map
         .neighbors(state.you.head)
         .sort((a, b) => map.getDanger(a) - map.getDanger(b))
+    if (neighbors.length === 0) {
+        console.log(`no safe moves :(`)
+        return 'up'
+    }
+    console.log(`choosing the least dangerous direction?`)
     return getDir(state.you.head, neighbors[0])
 
     // const moves = getMovesFromMap(map, state.you)

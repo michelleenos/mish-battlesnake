@@ -28,12 +28,7 @@ export function buildMap(state, config) {
             map.setBlocked(tail, false);
         }
     }
-    floodFillMap(map);
-    map.getAll().forEach((coord) => {
-        const cell = map.get(coord);
-        if (cell.fill && cell.fill < state.you.length)
-            map.setDanger(coord, 30);
-    });
+    const fillRegions = floodFillMap(map, state);
     if (config.avoidWalls > 0) {
         for (let x = 0; x < state.board.width; x++) {
             map.setDanger({ x, y: 0 }, config.avoidWalls);
@@ -44,7 +39,7 @@ export function buildMap(state, config) {
             map.setDanger({ x: state.board.width - 1, y }, config.avoidWalls);
         }
     }
-    return map;
+    return { map, fillRegions };
 }
 export function getWeakerSneks(state) {
     const you = state.you;
@@ -104,7 +99,7 @@ export function moveToTail(state, map) {
 }
 export function getMove(state, config) {
     const health = state.you.health;
-    const map = buildMap(state, config);
+    const { map } = buildMap(state, config);
     const shouldEat = health < config.shouldEatThreshold;
     const couldEat = health < config.couldEatThreshold;
     const toFood = moveToFood(state, map);
@@ -126,10 +121,14 @@ export function getMove(state, config) {
         console.log(`moving ${toTail} toward my tail`);
         return toTail;
     }
-    console.log(`choosing the least dangerous direction??`);
     const neighbors = map
         .neighbors(state.you.head)
         .sort((a, b) => map.getDanger(a) - map.getDanger(b));
+    if (neighbors.length === 0) {
+        console.log(`no safe moves :(`);
+        return 'up';
+    }
+    console.log(`choosing the least dangerous direction?`);
     return getDir(state.you.head, neighbors[0]);
     // const moves = getMovesFromMap(map, state.you)
     // const movesStrings = (Object.keys(moves) as (keyof typeof moves)[]).filter((key) => moves[key])
