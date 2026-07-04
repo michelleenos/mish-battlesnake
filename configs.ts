@@ -22,7 +22,7 @@ export const sneks = {
             tail: 'tiger-tail',
         },
         attackMaxCost: 15,
-        couldEatThreshold: 30,
+        couldEatThreshold: 90,
         shouldEatThreshold: 20,
         avoidWalls: 5,
         avoidBodies: 5,
