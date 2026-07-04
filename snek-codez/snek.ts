@@ -2,7 +2,7 @@ import type { Customizations, GameState } from '../types'
 import { aStar, type AStarResult } from './astar.js'
 import { floodFillMap } from './floodfill.js'
 import { BattleMap } from './graph.js'
-import { cellsEqual, getDir, manhattanDistance, type Direction } from './utils.js'
+import { cellsEqual, dirs, getDir, isWall, manhattanDistance, type Direction } from './utils.js'
 
 export interface SnekConfig {
     name: string
@@ -153,6 +153,15 @@ export function getMove(state: GameState, config: SnekConfig): Direction {
     if (couldEat && toFood !== null) {
         if (toTail !== null && toFood.costToNext <= toTail.costToNext) {
             return toFood.dir
+        }
+
+        const foodNext = dirs[toFood.dir](state.you.head)
+        if (isWall(foodNext, state.board.width, state.board.height)) {
+            const foodNextCell = map.get(foodNext)
+            if (foodNextCell.danger === config.avoidWalls) {
+                // don't avoid the food only because it's on a wall and is otherwise safe
+                return toFood.dir
+            }
         }
     }
     if (toTail !== null) {

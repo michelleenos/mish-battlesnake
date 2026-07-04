@@ -30,3 +30,7 @@ export const keyToCoord = (k: NodeKey): Coord => {
 export const manhattanDistance = (c1: Coord, c2: Coord) => {
     return Math.abs(c1.x - c2.x) + Math.abs(c1.y - c2.y)
 }
+
+export const isWall = (c: Coord, width: number, height: number) => {
+    return c.x === 0 || c.x === width - 1 || c.y === 0 || c.y === height - 1
+}
