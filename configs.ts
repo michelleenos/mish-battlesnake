@@ -31,7 +31,7 @@ export const sneks = {
         name: 'chill',
         customizations: {
             color: '#36ffbf',
-            head: 'peaceful',
+            head: 'rudolph',
             tail: 'curled',
         },
         attackMaxCost: 3,
