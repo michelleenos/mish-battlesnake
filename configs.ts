@@ -5,8 +5,8 @@ export const sneks = {
         name: 'hangry',
         customizations: {
             color: '#365aff',
-            head: 'tongue',
-            tail: 'curled',
+            head: 'bendr',
+            tail: 'hook',
         },
         attackMaxCost: 7,
         couldEatThreshold: 100,
@@ -18,7 +18,7 @@ export const sneks = {
         name: 'chill',
         customizations: {
             color: '#36ffbf',
-            head: 'tongue',
+            head: 'peaceful',
             tail: 'curled',
         },
         attackMaxCost: 3,
@@ -31,7 +31,7 @@ export const sneks = {
         name: 'peaceful',
         customizations: {
             color: '#ff5eef',
-            head: 'tongue',
+            head: 'safe',
             tail: 'curled',
         },
         attackMaxCost: 0,
