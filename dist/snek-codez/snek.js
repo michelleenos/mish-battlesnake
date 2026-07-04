@@ -113,7 +113,7 @@ export function getMove(state, config) {
     }
     const toTail = moveToTail(state, map);
     if (couldEat && toFood !== null) {
-        if (toTail !== null && toFood.costToNext < toTail.costToNext) {
+        if (toTail !== null && toFood.costToNext <= toTail.costToNext) {
             return toFood.dir;
         }
     }
