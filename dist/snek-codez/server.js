@@ -30,7 +30,7 @@ export default function runServer(snek, port) {
     });
     const host = '0.0.0.0';
     app.listen(port, host, () => {
-        console.log(`Running Battlesnake at http://${host}:${port}...`);
+        console.log(`Running Battlesnake ${snek.name} at http://${host}:${port}...`);
     });
 }
 //# sourceMappingURL=server.js.map
