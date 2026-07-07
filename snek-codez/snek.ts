@@ -2,7 +2,15 @@ import type { Customizations, GameState } from '../types'
 import { aStar, type AStarResult } from './astar.js'
 import { floodFillMap } from './floodfill.js'
 import { BattleMap } from './graph.js'
-import { cellsEqual, dirs, getDir, isWall, manhattanDistance, type Direction } from './utils.js'
+import {
+    cellsEqual,
+    dirs,
+    getDir,
+    isBaby,
+    isWall,
+    manhattanDistance,
+    type Direction,
+} from './utils.js'
 
 export interface SnekConfig {
     name: string
@@ -42,6 +50,7 @@ export function buildMap(state: GameState, config: SnekConfig) {
     const head = state.you.head
     const neck = state.you.body[1]
     const tail = state.you.body[state.you.body.length - 1]
+
     if (!cellsEqual(head, tail) && !cellsEqual(head, neck) && !cellsEqual(neck, tail)) {
         if (state.you.health < 100) {
             // because i thinkkkk health = 100 means i just ate? and if so, i will grow and then will be crashing into my tail
@@ -139,6 +148,7 @@ export function getMove(
     const shouldEat = health < config.shouldEatThreshold
     const couldEat = health < config.couldEatThreshold
     const toFood = moveToFood(state, map)
+    const amBaby = isBaby(state.you.body)
 
     if (shouldEat && toFood !== null) {
         return { name: 'toFood (shouldEat)', dir: toFood.dir, result: toFood }
@@ -149,7 +159,7 @@ export function getMove(
         return { name: 'toWeakSnek', dir: toWeakSnek.dir, result: toWeakSnek }
     }
 
-    const toTail = moveToTail(state, map)
+    const toTail = amBaby ? null : moveToTail(state, map)
 
     if (couldEat && toFood !== null) {
         if (toTail !== null && toFood.costToNext <= toTail.costToNext) {

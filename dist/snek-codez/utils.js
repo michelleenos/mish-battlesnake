@@ -27,4 +27,14 @@ export const manhattanDistance = (c1, c2) => {
 export const isWall = (c, width, height) => {
     return c.x === 0 || c.x === width - 1 || c.y === 0 || c.y === height - 1;
 };
+export const isBaby = (body) => {
+    if (body.length > 3)
+        return false;
+    const head = body[0];
+    const neck = body[1];
+    const tail = body[2];
+    if (cellsEqual(head, neck) || cellsEqual(head, tail) || cellsEqual(neck, tail))
+        return true;
+    return false;
+};
 //# sourceMappingURL=utils.js.map

@@ -1,7 +1,7 @@
 import { aStar } from './astar.js';
 import { floodFillMap } from './floodfill.js';
 import { BattleMap } from './graph.js';
-import { cellsEqual, dirs, getDir, isWall, manhattanDistance } from './utils.js';
+import { cellsEqual, dirs, getDir, isBaby, isWall, manhattanDistance, } from './utils.js';
 export function buildMap(state, config) {
     const map = new BattleMap(state.board.width, state.board.height);
     state.board.snakes.forEach((otherSnek) => {
@@ -103,6 +103,7 @@ export function getMove(state, config) {
     const shouldEat = health < config.shouldEatThreshold;
     const couldEat = health < config.couldEatThreshold;
     const toFood = moveToFood(state, map);
+    const amBaby = isBaby(state.you.body);
     if (shouldEat && toFood !== null) {
         return { name: 'toFood (shouldEat)', dir: toFood.dir, result: toFood };
     }
@@ -110,7 +111,7 @@ export function getMove(state, config) {
     if (toWeakSnek !== null) {
         return { name: 'toWeakSnek', dir: toWeakSnek.dir, result: toWeakSnek };
     }
-    const toTail = moveToTail(state, map);
+    const toTail = amBaby ? null : moveToTail(state, map);
     if (couldEat && toFood !== null) {
         if (toTail !== null && toFood.costToNext <= toTail.costToNext) {
             return { name: 'toFood (couldEat)', dir: toFood.dir, result: toFood };

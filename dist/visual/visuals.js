@@ -4,7 +4,7 @@ import { buildMap, getClosestFoods, getMove, moveToFood, } from '../snek-codez/s
 import { dirs, keyToCoord } from '../snek-codez/utils.js';
 // script to visualize the results of a* algorithm, for debugging purposes
 // ai wrote this part, mostly. it did not write my snake code!
-const config = sneks.angry;
+const config = sneks.chill;
 // @ts-ignore
 const sampleBody = [
     // { x: 10, y: 9 },
@@ -62,10 +62,12 @@ const sampleEnemyNextTo2Head = [
 ];
 // @ts-ignore
 const smallSampleBody = [
-    { x: 2, y: 0 },
-    { x: 3, y: 0 },
-    { x: 3, y: 1 },
-    { x: 3, y: 2 },
+    { x: 2, y: 1 },
+    { x: 2, y: 1 },
+    { x: 2, y: 2 },
+    // { x: 3, y: 0 },
+    // { x: 3, y: 1 },
+    // { x: 3, y: 2 },
 ];
 // @ts-ignore
 const slightlySmallEnemy = [
@@ -192,7 +194,7 @@ const sampleState = {
             sampleYou,
             // sampleSnek(enemyBody1, '#ff00ff'),
             // sampleSnek(enemyBody2, '#00ff00'),
-            sampleSnek(slightlySmallEnemy, '#00eeff'),
+            // sampleSnek(slightlySmallEnemy, '#00eeff'),
             sampleSnek(sampleEnemyNextTo2Head, '#ffb300'),
             // sampleSnek(enemyBody3, '#ffff00'),
         ],

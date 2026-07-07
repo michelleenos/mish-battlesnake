@@ -34,3 +34,12 @@ export const manhattanDistance = (c1: Coord, c2: Coord) => {
 export const isWall = (c: Coord, width: number, height: number) => {
     return c.x === 0 || c.x === width - 1 || c.y === 0 || c.y === height - 1
 }
+
+export const isBaby = (body: Coord[]) => {
+    if (body.length > 3) return false
+    const head = body[0]
+    const neck = body[1]
+    const tail = body[2]
+    if (cellsEqual(head, neck) || cellsEqual(head, tail) || cellsEqual(neck, tail)) return true
+    return false
+}
