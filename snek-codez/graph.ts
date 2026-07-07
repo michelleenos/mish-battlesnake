@@ -1,5 +1,5 @@
 import type { Coord } from '../types'
-import { coordToKey, dirs, type NodeKey } from './utils.js'
+import { cellsEqual, coordToKey, dirs, type NodeKey } from './utils.js'
 
 export class MapGraph<T> {
     width: number
@@ -78,11 +78,23 @@ export class BattleMap extends MapGraph<WeightedCell> {
         return cell.fill ?? undefined
     }
 
-    neighbors(c: Coord): Coord[] {
+    neighbors(c: Coord, includeBlocked: boolean | Coord = false): Coord[] {
         return Object.values(dirs)
             .map((move) => move(c))
             .filter((n) => {
-                return this.has(n) && !this.get(n).blocked
+                if (!this.has(n)) return false
+                if (includeBlocked === true) {
+                    return true
+                } else if (includeBlocked) {
+                    // return this.has(n) && !this.get(n).blocked
+                    if (cellsEqual(n, includeBlocked)) {
+                        return true
+                    } else {
+                        return !this.get(n).blocked
+                    }
+                } else {
+                    return !this.get(n).blocked
+                }
             })
     }
 

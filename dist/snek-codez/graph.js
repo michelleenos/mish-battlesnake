@@ -1,4 +1,4 @@
-import { coordToKey, dirs } from './utils.js';
+import { cellsEqual, coordToKey, dirs } from './utils.js';
 export class MapGraph {
     width;
     height;
@@ -62,11 +62,27 @@ export class BattleMap extends MapGraph {
         const cell = this.get(c);
         return cell.fill ?? undefined;
     }
-    neighbors(c) {
+    neighbors(c, includeBlocked = false) {
         return Object.values(dirs)
             .map((move) => move(c))
             .filter((n) => {
-            return this.has(n) && !this.get(n).blocked;
+            if (!this.has(n))
+                return false;
+            if (includeBlocked === true) {
+                return true;
+            }
+            else if (includeBlocked) {
+                // return this.has(n) && !this.get(n).blocked
+                if (cellsEqual(n, includeBlocked)) {
+                    return true;
+                }
+                else {
+                    return !this.get(n).blocked;
+                }
+            }
+            else {
+                return !this.get(n).blocked;
+            }
         });
     }
     getAll() {

@@ -12,7 +12,7 @@ export function aStar(map, start, goal) {
         const current = frontier.sort((a, b) => a.priority - b.priority).shift().c;
         if (cellsEqual(current, goal))
             break;
-        map.neighbors(current).forEach((next) => {
+        map.neighbors(current, goal).forEach((next) => {
             const nextCost = costSoFar.get(next);
             const curCost = costSoFar.get(current);
             const newCost = (curCost || 0) + 1 + map.getDanger(next);
@@ -37,6 +37,7 @@ export function aStar(map, start, goal) {
         directions: cameFrom,
         costToNext: costSoFar.get(nextMove) || 0,
         costToGoal: costSoFar.get(goal) || 0,
+        goal,
     };
 }
 export function constructPath(cameFrom, start, goal) {

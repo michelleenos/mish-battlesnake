@@ -7,7 +7,7 @@ export function buildMap(state, config) {
     state.board.snakes.forEach((otherSnek) => {
         otherSnek.body.forEach((b) => map.setBlocked(b));
         if (otherSnek.id !== state.you.id) {
-            const headNeighbors = map.neighbors(otherSnek.head);
+            const headNeighbors = map.neighbors(otherSnek.head, true);
             const amBigger = state.you.length > otherSnek.length + 1;
             const body = otherSnek.body.slice(1);
             body.forEach((body) => {
@@ -53,24 +53,25 @@ export function getWeakerSneks(state) {
     const weakerSnekHeads = weakerSneks.map((weakSnek) => weakSnek.head);
     return { weakerSneks, weakerSnekHeads };
 }
-function attackWeakerSneks(state, map, config) {
+export function attackWeakerSneks(state, map, config) {
     const { weakerSnekHeads } = getWeakerSneks(state);
     const pathResults = weakerSnekHeads.map((h) => aStar(map, state.you.head, h));
     const validResults = pathResults.filter((r) => r !== null && r.costToNext <= config.attackMaxCost);
     validResults.sort((a, b) => a.costToGoal - b.costToGoal);
     if (validResults.length === 0)
         return null;
-    return validResults[0].dir;
+    return validResults[0];
 }
-export function getClosestFoods(state, _map) {
+export function getClosestFoods(state, map, maxDanger = 10) {
     const head = state.you.head;
     const foods = state.board.food;
     const nearestFoods = foods
-        // .filter((food) => {
-        //     const danger = map.getDanger(food)
-        //     if (danger > maxDanger) return false
-        //     return true
-        // })
+        .filter((food) => {
+        const danger = map.getDanger(food);
+        if (danger > maxDanger)
+            return false;
+        return true;
+    })
         .sort((a, b) => {
         return manhattanDistance(a, head) - manhattanDistance(b, head);
     });
@@ -103,46 +104,45 @@ export function getMove(state, config) {
     const couldEat = health < config.couldEatThreshold;
     const toFood = moveToFood(state, map);
     if (shouldEat && toFood !== null) {
-        console.log(`moving ${toFood} to a food`);
-        return toFood.dir;
+        return { name: 'toFood (shouldEat)', dir: toFood.dir, result: toFood };
     }
     const toWeakSnek = config.attackMaxCost > 0 ? attackWeakerSneks(state, map, config) : null;
     if (toWeakSnek !== null) {
-        console.log(`moving ${toWeakSnek} to attack a weak snek`);
-        return toWeakSnek;
+        return { name: 'toWeakSnek', dir: toWeakSnek.dir, result: toWeakSnek };
     }
     const toTail = moveToTail(state, map);
     if (couldEat && toFood !== null) {
         if (toTail !== null && toFood.costToNext <= toTail.costToNext) {
-            return toFood.dir;
+            return { name: 'toFood (couldEat)', dir: toFood.dir, result: toFood };
         }
         const foodNext = dirs[toFood.dir](state.you.head);
         if (toFood.path.length === 1 && isWall(foodNext, state.board.width, state.board.height)) {
             const foodNextCell = map.get(foodNext);
             if (foodNextCell.danger === config.avoidWalls) {
                 // don't avoid a food right next to our head only because it's on a wall
-                return toFood.dir;
+                // return toFood.dir
+                return { name: 'toFood (wall exception)', dir: toFood.dir, result: toFood };
             }
         }
     }
-    if (toTail !== null) {
-        return toTail.dir;
+    if (toTail !== null && toTail.costToNext === 1) {
+        return { name: 'toTail', dir: toTail.dir, result: toTail };
     }
     const neighbors = map
         .neighbors(state.you.head)
         .sort((a, b) => map.getDanger(a) - map.getDanger(b));
     if (neighbors.length === 0) {
         console.log(`no safe moves :(`);
-        return 'up';
+        return { name: 'no safe moves', dir: 'up', result: null };
     }
-    console.log(`choosing the least dangerous direction?`);
-    return getDir(state.you.head, neighbors[0]);
-    // const moves = getMovesFromMap(map, state.you)
-    // const movesStrings = (Object.keys(moves) as (keyof typeof moves)[]).filter((key) => moves[key])
-    // if (movesStrings.length === 0) {
-    //     console.log('no safe moves!!!')
-    //     return 'up'
-    // }
-    // return movesStrings[Math.floor(Math.random() * movesStrings.length)]
+    return {
+        name: 'leastDangerous',
+        dir: getDir(state.you.head, neighbors[0]),
+        result: null,
+    };
+}
+export function getMoveDirection(state, config) {
+    const result = getMove(state, config);
+    return result.dir;
 }
 //# sourceMappingURL=snek.js.map

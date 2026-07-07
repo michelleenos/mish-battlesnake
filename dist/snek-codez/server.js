@@ -1,5 +1,5 @@
 import express from 'express';
-import { getMove } from './snek.js';
+import { getMoveDirection } from './snek.js';
 export default function runServer(snek, port) {
     const app = express();
     app.use(express.json());
@@ -16,7 +16,7 @@ export default function runServer(snek, port) {
     });
     app.post('/move', (req, res) => {
         const state = req.body;
-        const move = getMove(state, snek);
+        const move = getMoveDirection(state, snek);
         console.log(`${snek.name} MOVE ${state.turn}: ${move}`);
         res.send({ move });
     });

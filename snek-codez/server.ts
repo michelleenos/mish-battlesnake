@@ -1,7 +1,7 @@
 import express from 'express'
 import type { Request, Response, NextFunction } from 'express'
 import type { GameState, InfoResponse, MoveResponse } from '../types'
-import { getMove, type SnekConfig } from './snek.js'
+import { getMoveDirection, type SnekConfig } from './snek.js'
 
 export interface BattlesnakeHandlers {
     info: () => InfoResponse
@@ -29,7 +29,7 @@ export default function runServer(snek: SnekConfig, port: number) {
 
     app.post('/move', (req: Request, res: Response) => {
         const state = req.body
-        const move = getMove(state, snek)
+        const move = getMoveDirection(state, snek)
         console.log(`${snek.name} MOVE ${state.turn}: ${move}`)
         res.send({ move })
     })

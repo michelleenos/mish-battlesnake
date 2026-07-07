@@ -13,6 +13,7 @@ export type AStarResult = {
     directions: MapGraph<Coord | null>
     costMap: MapGraph<number | null>
     path: Coord[]
+    goal: Coord
 }
 
 export function aStar(map: BattleMap, start: Coord, goal: Coord): null | AStarResult {
@@ -26,7 +27,7 @@ export function aStar(map: BattleMap, start: Coord, goal: Coord): null | AStarRe
 
         if (cellsEqual(current, goal)) break
 
-        map.neighbors(current).forEach((next) => {
+        map.neighbors(current, goal).forEach((next) => {
             const nextCost = costSoFar.get(next)
             const curCost = costSoFar.get(current)
             const newCost = (curCost || 0) + 1 + map.getDanger(next)
@@ -54,6 +55,7 @@ export function aStar(map: BattleMap, start: Coord, goal: Coord): null | AStarRe
         directions: cameFrom,
         costToNext: costSoFar.get(nextMove) || 0,
         costToGoal: costSoFar.get(goal) || 0,
+        goal,
     }
 }
 
